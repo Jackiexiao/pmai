@@ -1,111 +1,92 @@
 import { NextResponse } from 'next/server';
+import OpenAI from 'openai';
 
-// 模拟生成商业画布的函数
-function generateMockBusinessCanvas(idea: string) {
-  const modules = {
-    'Customer Segments': [
-      'Who are your most important customers?',
-      'What are the characteristics of your ideal customer?',
-      'Are there different customer groups with different needs?'
-    ],
-    'Value Propositions': [
-      'What value do you deliver to the customer?',
-      'Which customer problems are you helping to solve?',
-      'What bundles of products and services are you offering to each segment?'
-    ],
-    'Channels': [
-      'Through which channels do your customer segments want to be reached?',
-      'How are you reaching them now?',
-      'Which channels work best? Which ones are most cost-efficient?'
-    ],
-    'Customer Relationships': [
-      'What type of relationship does each of your customer segments expect you to establish?',
-      'How costly are they?',
-      'How are they integrated with the rest of your business model?'
-    ],
-    'Revenue Streams': [
-      'For what value are your customers really willing to pay?',
-      'How would they prefer to pay?',
-      'How much does each revenue stream contribute to overall revenues?'
-    ],
-    'Key Resources': [
-      'What key resources does your value proposition require?',
-      'What resources are needed for your distribution channels, customer relationships, revenue streams?'
-    ],
-    'Key Activities': [
-      'What key activities does your value proposition require?',
-      'What activities are needed for your distribution channels?',
-      'What activities are needed for your customer relationships?'
-    ],
-    'Key Partnerships': [
-      'Who are your key partners?',
-      'Who are your key suppliers?',
-      'Which key resources are you acquiring from partners?'
-    ],
-    'Cost Structure': [
-      'What are the most important costs inherent in your business model?',
-      'Which key resources are most expensive?',
-      'Which key activities are most expensive?'
-    ]
-  };
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+  baseURL: process.env.OPENAI_API_BASE_URL || undefined,
+});
 
-  const canvas: Record<string, Array<{ point: string, content: string }>> = {};
+const MODEL_NAME = process.env.OPENAI_MODEL_NAME || 'gpt-3.5-turbo-16k';
 
-  for (const [module, points] of Object.entries(modules)) {
-    canvas[module] = points.map(point => ({
-      point,
-      content: generateMockMarkdownContent(idea, module, point)
-    }));
-  }
+async function generateBusinessCanvas(idea: string) {
+  console.log(`Generating business canvas for idea: ${idea}`);
+  const startTime = Date.now();
 
-  return canvas;
+  const prompt = `
+基于用户输入的产品"${idea}"生成商业模式画布的九大要点，内容精炼，词汇精准直接。请按以下格式生成JSON响应：
+
+{
+  "客户细分": [
+    { "point": "point1" },
+    { "point": "point2" }
+  ],
+  "价值主张": [
+    { "point": "point1" },
+    { "point": "point2" }
+  ],
+  ...
+  // 包含其他模块：渠道通路、客户关系、收入来源、核心资源、关键业务、重要合作、成本结构
+}
+
+每个模块应包含2-4个要点。`;
+
+  console.log('Sending request to OpenAI API...');
+  const response = await openai.chat.completions.create({
+    model: MODEL_NAME,
+    messages: [
+      { role: "system", content: "你是一位经验丰富的商业分析师，专门创建商业模式画布。" },
+      { role: "user", content: prompt }
+    ],
+    temperature: 0.7,
+    response_format: { type: "json_object" },
+    max_tokens: 3000,
+  });
+  console.log('Received response from OpenAI API');
+
+  const generatedCanvas = JSON.parse(response.choices[0].message.content || '{}');
+  
+  const endTime = Date.now();
+  console.log(`Business canvas generation completed in ${endTime - startTime}ms`);
+
+  return generatedCanvas;
 }
 
 export async function POST(req: Request) {
+  console.log('Received POST request to generate canvas');
+  const startTime = Date.now();
+
   const { idea } = await req.json();
   
-  // 生成模拟的商业画布数据
-  const canvasData = generateMockBusinessCanvas(idea);
-  
-  // 在实际应用中，这里会将数据保存到数据库
-  // 但现在我们只返回生成的数据
-  return NextResponse.json({ idea, canvas: canvasData });
+  try {
+    const canvasData = await generateBusinessCanvas(idea);
+    const endTime = Date.now();
+    console.log(`Total POST request processed in ${endTime - startTime}ms`);
+    return NextResponse.json({ idea, canvas: canvasData });
+  } catch (error: any) {
+    console.error('Error generating canvas:', error);
+    return NextResponse.json({ error: 'Failed to generate canvas', details: error.message }, { status: 500 });
+  }
 }
 
 export async function GET(req: Request) {
+  console.log('Received GET request to generate canvas');
+  const startTime = Date.now();
+
   const { searchParams } = new URL(req.url);
   const idea = searchParams.get('idea');
 
   if (!idea) {
+    console.log('Missing idea parameter in GET request');
     return NextResponse.json({ error: 'Missing idea parameter' }, { status: 400 });
   }
 
-  const canvasData = generateMockBusinessCanvas(idea);
-  console.log('Generated canvas data:', canvasData);
-
-  return NextResponse.json({ idea, canvas: canvasData });
-}
-
-function generateMockMarkdownContent(idea: string, module: string, point: string): string {
-  return `# ${point}
-
-## Overview
-This is a mock analysis for the business idea: "${idea}".
-
-## Key Points
-- Point 1 related to this ${module}
-- Point 2 related to this ${module}
-- Point 3 related to this ${module}
-
-## Detailed Analysis
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
-
-## Recommendations
-1. Recommendation 1 for this point
-2. Recommendation 2 for this point
-3. Recommendation 3 for this point
-
-## Conclusion
-In conclusion, this aspect of the ${module} for "${idea}" requires careful consideration and strategic planning.
-`;
+  try {
+    const canvasData = await generateBusinessCanvas(idea);
+    const endTime = Date.now();
+    console.log(`Total GET request processed in ${endTime - startTime}ms`);
+    return NextResponse.json({ idea, canvas: canvasData });
+  } catch (error: any) {
+    console.error('Error generating canvas:', error);
+    return NextResponse.json({ error: 'Failed to generate canvas', details: error.message }, { status: 500 });
+  }
 }

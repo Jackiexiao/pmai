@@ -11,8 +11,13 @@ type CanvasData = {
 export default function IdeaPage() {
   const params = useParams();
   const [canvas, setCanvas] = useState<CanvasData | null>(null);
+  const [decodedIdeaName, setDecodedIdeaName] = useState<string>('');
 
   useEffect(() => {
+    // Decode the idea_name
+    const decoded = decodeURIComponent(params.idea_name as string);
+    setDecodedIdeaName(decoded);
+
     const storedCanvas = localStorage.getItem(`canvas_${params.idea_name}`);
     if (storedCanvas) {
       console.log('Canvas found in localStorage:', JSON.parse(storedCanvas));
@@ -37,8 +42,8 @@ export default function IdeaPage() {
 
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">Business Canvas for: {params.idea_name}</h1>
-      <BusinessCanvas idea={params.idea_name as string} data={canvas} />
+      <h1 className="text-2xl font-bold mb-4">Business Canvas for: {decodedIdeaName}</h1>
+      <BusinessCanvas idea={decodedIdeaName} data={canvas} />
     </div>
   );
 }
