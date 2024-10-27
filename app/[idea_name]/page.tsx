@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
+import { motion } from 'framer-motion';
 import BusinessCanvas from '../components/BusinessCanvas';
 
 type CanvasData = {
@@ -33,18 +34,32 @@ export default function IdeaPage() {
 
   if (!canvas) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
-        <div className="animate-pulse text-2xl text-gray-400">生成画布中...</div>
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-900 to-black">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5 }}
+          className="text-2xl text-white"
+        >
+          生成画布中...
+        </motion.div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 bg-gray-50 min-h-screen">
-      <h1 className="text-4xl font-bold text-gray-900 mb-8 pb-2 border-b border-gray-200">
-        {decodedIdeaName} 的商业画布
-      </h1>
-      <BusinessCanvas idea={decodedIdeaName} data={canvas} />
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black text-white">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12"
+      >
+        <h1 className="text-4xl font-bold mb-8 pb-2 border-b border-gray-700">
+          {decodedIdeaName} 的商业画布
+        </h1>
+        <BusinessCanvas idea={decodedIdeaName} data={canvas} />
+      </motion.div>
     </div>
   );
 }
