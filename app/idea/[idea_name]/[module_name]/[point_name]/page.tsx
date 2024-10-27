@@ -6,21 +6,28 @@ import ReactMarkdown from 'react-markdown';
 
 export default function PointPage() {
   const params = useParams();
-  const [content, setContent] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [content, setContent] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchContent = async () => {
-      const response = await fetch(`/api/get-question-content?idea=${params.idea_name}&module=${params.module_name}&point=${params.point_name}`);
-      const data = await response.json();
-      setContent(data.content);
-      setLoading(false);
-    };
-    fetchContent();
+    console.log('Params:', params);
+    const storedCanvas = localStorage.getItem(`canvas_${params.idea_name}`);
+    if (storedCanvas) {
+      const canvas = JSON.parse(storedCanvas);
+      console.log('Stored canvas:', canvas);
+      console.log('Looking for module:', params.module_name);
+      console.log('Looking for point:', params.point_name);
+      const pointData = canvas[params.module_name as string]?.find((item: { point: string, content: string }) => item.point === params.point_name);
+      console.log('Found point data:', pointData);
+      if (pointData) {
+        setContent(pointData.content);
+      }
+    } else {
+      console.log('No canvas found in localStorage');
+    }
   }, [params.idea_name, params.module_name, params.point_name]);
 
-  if (loading) {
-    return <div>Loading...</div>;
+  if (content === null) {
+    return <div>Content not found</div>;
   }
 
   return (

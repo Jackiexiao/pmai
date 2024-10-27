@@ -1,6 +1,4 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
-import { PrismaClient } from '@prisma/client';
 
 // 模拟生成商业画布的函数
 function generateMockBusinessCanvas(idea: string) {
@@ -51,7 +49,16 @@ function generateMockBusinessCanvas(idea: string) {
     ]
   };
 
-  return modules;
+  const canvas: Record<string, Array<{ point: string, content: string }>> = {};
+
+  for (const [module, points] of Object.entries(modules)) {
+    canvas[module] = points.map(point => ({
+      point,
+      content: generateMockMarkdownContent(idea, module, point)
+    }));
+  }
+
+  return canvas;
 }
 
 export async function POST(req: Request) {
@@ -60,52 +67,9 @@ export async function POST(req: Request) {
   // 生成模拟的商业画布数据
   const canvasData = generateMockBusinessCanvas(idea);
   
-  try {
-    // 保存到数据库
-    const savedCanvas = await prisma.$transaction(async (tx: PrismaClient) => {
-      const businessIdea = await tx.businessIdea.create({
-        data: {
-          name: idea,
-          canvas: {
-            create: {}
-          }
-        },
-        include: {
-          canvas: true
-        }
-      });
-
-      const modulePromises = Object.entries(canvasData).map(([moduleName, points]) =>
-        tx.businessModule.create({
-          data: {
-            name: moduleName,
-            canvas: { connect: { id: businessIdea.canvas!.id } },
-            points: {
-              create: points.map(point => ({
-                content: generateMockMarkdownContent(idea, moduleName, point)
-              }))
-            }
-          }
-        })
-      );
-
-      await Promise.all(modulePromises);
-
-      return businessIdea;
-    }, {
-      maxWait: 5000, // 5 seconds
-      timeout: 10000, // 10 seconds
-    });
-
-    return NextResponse.json({ idea: savedCanvas.name, canvasId: savedCanvas.canvas!.id });
-  } catch (error) {
-    if (error instanceof Error) {
-      console.error('Prisma error:', error.message);
-      return NextResponse.json({ error: 'Database operation failed' }, { status: 500 });
-    }
-    console.error('Unexpected error:', error);
-    return NextResponse.json({ error: 'An unexpected error occurred' }, { status: 500 });
-  }
+  // 在实际应用中，这里会将数据保存到数据库
+  // 但现在我们只返回生成的数据
+  return NextResponse.json({ idea, canvas: canvasData });
 }
 
 export async function GET(req: Request) {
@@ -116,38 +80,14 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: 'Missing idea parameter' }, { status: 400 });
   }
 
-  const businessIdea = await prisma.businessIdea.findUnique({
-    where: { name: idea },
-    include: {
-      canvas: {
-        include: {
-          modules: {
-            include: {
-              points: true
-            }
-          }
-        }
-      }
-    }
-  });
+  const canvasData = generateMockBusinessCanvas(idea);
+  console.log('Generated canvas data:', canvasData);
 
-  if (!businessIdea) {
-    return NextResponse.json({ error: 'Business idea not found' }, { status: 404 });
-  }
-
-  const formattedCanvas = businessIdea.canvas!.modules.reduce((acc: Record<string, Array<{ point: string, content: string }>>, module: any) => {
-    acc[module.name] = module.points.map((point: any) => ({
-      point: point.content.split('\n')[0], // 假设第一行是问题
-      content: point.content
-    }));
-    return acc;
-  }, {});
-
-  return NextResponse.json({ idea: businessIdea.name, canvas: formattedCanvas });
+  return NextResponse.json({ idea, canvas: canvasData });
 }
 
 function generateMockMarkdownContent(idea: string, module: string, point: string): string {
-  return `${point}
+  return `# ${point}
 
 ## Overview
 This is a mock analysis for the business idea: "${idea}".
