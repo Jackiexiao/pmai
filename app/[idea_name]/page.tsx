@@ -14,19 +14,16 @@ export default function IdeaPage() {
   const [decodedIdeaName, setDecodedIdeaName] = useState<string>('');
 
   useEffect(() => {
-    // Decode the idea_name
     const decoded = decodeURIComponent(params.idea_name as string);
     setDecodedIdeaName(decoded);
 
     const storedCanvas = localStorage.getItem(`canvas_${params.idea_name}`);
     if (storedCanvas) {
-      console.log('Canvas found in localStorage:', JSON.parse(storedCanvas));
       setCanvas(JSON.parse(storedCanvas));
     } else {
       const fetchCanvas = async () => {
         const response = await fetch(`/api/generate-canvas?idea=${params.idea_name}`);
         const data = await response.json();
-        console.log('Canvas fetched from API:', data.canvas);
         setCanvas(data.canvas);
         localStorage.setItem(`canvas_${params.idea_name}`, JSON.stringify(data.canvas));
       };
@@ -35,14 +32,18 @@ export default function IdeaPage() {
   }, [params.idea_name]);
 
   if (!canvas) {
-    return <div>Generating canvas...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="animate-pulse text-2xl text-gray-400">生成画布中...</div>
+      </div>
+    );
   }
 
-  console.log('Rendering canvas:', canvas);
-
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">Business Canvas for: {decodedIdeaName}</h1>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 bg-gray-50 min-h-screen">
+      <h1 className="text-4xl font-bold text-gray-900 mb-8 pb-2 border-b border-gray-200">
+        {decodedIdeaName} 的商业画布
+      </h1>
       <BusinessCanvas idea={decodedIdeaName} data={canvas} />
     </div>
   );
