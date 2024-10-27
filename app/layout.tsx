@@ -1,13 +1,12 @@
 import './globals.css';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
-import { ThemeProvider } from "@/components/theme-provider";
 
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-    title: 'Personal Introduction Page',
-    description: 'A Linktree-like personal introduction page',
+    title: 'Business Canvas Generator',
+    description: 'Generate a business canvas from your idea',
 };
 
 export default function RootLayout({
@@ -16,12 +15,8 @@ export default function RootLayout({
     children: React.ReactNode;
 }) {
     return (
-        <html lang="en" suppressHydrationWarning>
-            <body className={inter.className} suppressHydrationWarning>
-                <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-                    {children}
-                </ThemeProvider>
-            </body>
+        <html lang="en">
+            <body className={inter.className}>{children}</body>
         </html>
     );
 }
